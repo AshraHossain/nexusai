@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusAI Architecture Map</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0a0e1a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1a1f35 0%, #0f172a 100%);
+    border-bottom: 1px solid #1e293b;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header p { color: #64748b; font-size: 13px; margin-top: 4px; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 32px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: 8px 18px;
+    border-radius: 6px;
+    border: 1px solid #1e293b;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab:hover { border-color: #60a5fa; color: #60a5fa; }
+  .tab.active { background: #1e40af; border-color: #3b82f6; color: #fff; }
+
+  .view { display: none; padding: 24px 32px; }
+  .view.active { display: block; }
+
+  /* ── SVG Canvas ── */
+  .canvas-wrap {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    overflow: auto;
+    max-height: 75vh;
+  }
+
+  svg { display: block; }
+
+  /* ── Component cards ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 18px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .card:hover { border-color: #3b82f6; transform: translateY(-2px); }
+
+  .card-icon { font-size: 28px; margin-bottom: 10px; }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .card-desc { font-size: 12px; color: #64748b; line-height: 1.5; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 8px;
+    margin-right: 4px;
+  }
+  .badge-blue { background: #1e3a5f; color: #60a5fa; }
+  .badge-purple { background: #2e1065; color: #a78bfa; }
+  .badge-green { background: #064e3b; color: #34d399; }
+  .badge-yellow { background: #451a03; color: #fbbf24; }
+  .badge-red { background: #450a0a; color: #f87171; }
+
+  /* ── Flow table ── */
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid #1e293b;
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1e3a5f;
+    color: #60a5fa;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-content h4 { font-size: 14px; font-weight: 600; }
+  .step-content p { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+  .step-api {
+    font-family: monospace;
+    font-size: 11px;
+    background: #0a0e1a;
+    border: 1px solid #1e293b;
+    border-radius: 4px;
+    padding: 2px 8px;
+    color: #34d399;
+    margin-top: 4px;
+    display: inline-block;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #f1f5f9;
+  }
+
+  .arrow { color: #475569; font-size: 18px; margin: 0 8px; }
+
+  /* ── API table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #1e293b; padding: 10px 14px; text-align: left; color: #94a3b8; font-weight: 600; }
+  td { padding: 10px 14px; border-bottom: 1px solid #1e293b; }
+  tr:hover td { background: #0f172a; }
+  .method { font-family: monospace; font-weight: 700; }
+  .method-post { color: #34d399; }
+  .method-get { color: #60a5fa; }
+  .endpoint { font-family: monospace; color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>⚡ NexusAI Architecture Map</h1>
+    <p>Enterprise Agent Orchestration Platform · v1.0.0 · 2026-06-09</p>
+  </div>
+  <div style="font-size:12px;color:#475569;text-align:right;">
+    Python · FastAPI · LangGraph · PostgreSQL<br>
+    SentinelAI · EvalOps · KnowledgeOps
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showView('overview')">System Overview</button>
+  <button class="tab" onclick="showView('agents')">Agent Catalog</button>
+  <button class="tab" onclick="showView('flow')">Workflow Flow</button>
+  <button class="tab" onclick="showView('contract')">Contract Review</button>
+  <button class="tab" onclick="showView('sdet')">AI SDET</button>
+  <button class="tab" onclick="showView('api')">API Reference</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ OVERVIEW ══ -->
+<div id="view-overview" class="view active">
+  <p class="section-title">System Architecture</p>
+  <div class="canvas-wrap">
+    <svg viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg" width="1100" height="700">
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#475569"/>
+        </marker>
+        <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+        </marker>
+        <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+        </marker>
+        <marker id="arr-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6"/>
+        </marker>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Background grid -->
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+      </pattern>
+      <rect width="1100" height="700" fill="url(#grid)"/>
+
+      <!-- ── User / API Layer ── -->
+      <rect x="440" y="20" width="220" height="55" rx="10" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="550" y="44" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="600">USER / API CLIENT</text>
+      <text x="550" y="60" text-anchor="middle" fill="#475569" font-size="10">POST /workflows/run</text>
+
+      <!-- Arrow down to NexusAI -->
+      <line x1="550" y1="75" x2="550" y2="110" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+      <!-- ── NexusAI Core ── -->
+      <rect x="280" y="110" width="540" height="180" rx="12" fill="#0f172a" stroke="#6366f1" stroke-width="2"/>
+      <text x="550" y="133" text-anchor="middle" fill="#a5b4fc" font-size="13" font-weight="700">⚡ NEXUSAI ORCHESTRATOR</text>
+      <text x="550" y="150" text-anchor="middle" fill="#475569" font-size="10">LangGraph State Machine · FastAPI · Human Approval</text>
+
+      <!-- Agents inside NexusAI -->
+      <rect x="296" y="160" width="90" height="38" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+      <text x="341" y="177" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="600">🧠 Planner</text>
+      <text x="341" y="191" text-anchor="middle" fill="#6366f1" font-size="9">plan</text>
+
+      <rect x="394" y="160" width="90" height="38" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+      <text x="439" y="177" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="600">🔍 Research</text>
+      <text x="439" y="191" text-anchor="middle" fill="#6366f1" font-size="9">retrieve</text>
+
+      <rect x="492" y="160" width="90" height="38" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+      <text x="537" y="177" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="600">💻 Coding</text>
+      <text x="537" y="191" text-anchor="middle" fill="#6366f1" font-size="9">generate</text>
+
+      <rect x="590" y="160" width="90" height="38" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+      <text x="635" y="177" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="600">✅ QA</text>
+      <text x="635" y="191" text-anchor="middle" fill="#6366f1" font-size="9">test</text>
+
+      <rect x="688" y="160" width="90" height="38" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+      <text x="733" y="177" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="600">🔒 Security</text>
+      <text x="733" y="191" text-anchor="middle" fill="#6366f1" font-size="9">review</text>
+
+      <!-- Router label -->
+      <rect x="296" y="212" width="482" height="68" rx="6" fill="#0a0e1a" stroke="#334155" stroke-width="1"/>
+      <text x="537" y="233" text-anchor="middle" fill="#475569" font-size="10">LangGraph Conditional Router</text>
+      <text x="537" y="250" text-anchor="middle" fill="#64748b" font-size="9">plan → research → coding → qa → security → evaluate</text>
+      <text x="537" y="265" text-anchor="middle" fill="#64748b" font-size="9">interrupt_before=[human_approval] · MemorySaver checkpointer</text>
+
+      <!-- Arrows down to integrations -->
+      <!-- SentinelAI -->
+      <line x1="350" y1="290" x2="185" y2="390" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+      <!-- KnowledgeOps -->
+      <line x1="450" y1="290" x2="450" y2="390" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-green)"/>
+      <!-- EvalOps -->
+      <line x1="700" y1="290" x2="820" y2="390" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-purple)"/>
+
+      <!-- ── SentinelAI ── -->
+      <rect x="60" y="390" width="200" height="80" rx="10" fill="#1a0a0a" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="160" y="413" text-anchor="middle" fill="#f87171" font-size="12" font-weight="700">🛡 SentinelAI</text>
+      <text x="160" y="430" text-anchor="middle" fill="#7f1d1d" font-size="10">Security &amp; Governance</text>
+      <text x="160" y="447" text-anchor="middle" fill="#b91c1c" font-size="9">/validate-input</text>
+      <text x="160" y="460" text-anchor="middle" fill="#b91c1c" font-size="9">/validate-output  /risk-score</text>
+
+      <!-- ── KnowledgeOps ── -->
+      <rect x="340" y="390" width="220" height="80" rx="10" fill="#0a1a0f" stroke="#10b981" stroke-width="1.5"/>
+      <text x="450" y="413" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">📚 KnowledgeOps</text>
+      <text x="450" y="430" text-anchor="middle" fill="#065f46" font-size="10">Enterprise RAG</text>
+      <text x="450" y="447" text-anchor="middle" fill="#047857" font-size="9">/retrieve  (hybrid BM25 + vector)</text>
+      <text x="450" y="460" text-anchor="middle" fill="#047857" font-size="9">/ingest  /retrieve/stream</text>
+
+      <!-- ── EvalOps ── -->
+      <rect x="720" y="390" width="200" height="80" rx="10" fill="#0f0a1a" stroke="#8b5cf6" stroke-width="1.5"/>
+      <text x="820" y="413" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">📊 EvalOps</text>
+      <text x="820" y="430" text-anchor="middle" fill="#4c1d95" font-size="10">Evaluation &amp; Observability</text>
+      <text x="820" y="447" text-anchor="middle" fill="#6d28d9" font-size="9">/evaluate</text>
+      <text x="820" y="460" text-anchor="middle" fill="#6d28d9" font-size="9">quality · completeness · groundedness</text>
+
+      <!-- ── Database Layer ── -->
+      <rect x="120" y="520" width="180" height="55" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="210" y="543" text-anchor="middle" fill="#64748b" font-size="11" font-weight="600">🐘 PostgreSQL</text>
+      <text x="210" y="560" text-anchor="middle" fill="#334155" font-size="9">10 tables · audit trail</text>
+
+      <rect x="320" y="520" width="130" height="55" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="385" y="543" text-anchor="middle" fill="#64748b" font-size="11" font-weight="600">⚡ Redis</text>
+      <text x="385" y="560" text-anchor="middle" fill="#334155" font-size="9">state cache</text>
+
+      <!-- ── Observability ── -->
+      <rect x="600" y="520" width="330" height="55" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="765" y="543" text-anchor="middle" fill="#64748b" font-size="11" font-weight="600">📡 OpenTelemetry → Prometheus → Grafana</text>
+      <text x="765" y="560" text-anchor="middle" fill="#334155" font-size="9">traces · metrics · agent latency · token usage</text>
+
+      <!-- ── Workflow Types ── -->
+      <rect x="200" y="630" width="160" height="50" rx="8" fill="#0f172a" stroke="#6366f1" stroke-width="1"/>
+      <text x="280" y="653" text-anchor="middle" fill="#a5b4fc" font-size="11" font-weight="600">General Workflow</text>
+      <text x="280" y="669" text-anchor="middle" fill="#475569" font-size="9">6-agent pipeline</text>
+
+      <rect x="380" y="630" width="160" height="50" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+      <text x="460" y="653" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">Contract Review</text>
+      <text x="460" y="669" text-anchor="middle" fill="#475569" font-size="9">4-agent legal pipeline</text>
+
+      <rect x="560" y="630" width="160" height="50" rx="8" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+      <text x="640" y="653" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">AI SDET</text>
+      <text x="640" y="669" text-anchor="middle" fill="#475569" font-size="9">5-agent test pipeline</text>
+
+      <!-- Arrow up from workflows -->
+      <line x1="280" y1="630" x2="420" y2="295" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="460" y1="630" x2="500" y2="295" stroke="#10b981" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="640" y1="630" x2="600" y2="295" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,3"/>
+
+      <!-- Legend -->
+      <rect x="950" y="20" width="130" height="110" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+      <text x="1015" y="40" text-anchor="middle" fill="#64748b" font-size="11" font-weight="600">Legend</text>
+      <line x1="965" y1="55" x2="995" y2="55" stroke="#3b82f6" stroke-width="2"/>
+      <text x="1000" y="58" fill="#94a3b8" font-size="10">Data flow</text>
+      <line x1="965" y1="72" x2="995" y2="72" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="1000" y="75" fill="#94a3b8" font-size="10">Security gate</text>
+      <line x1="965" y1="89" x2="995" y2="89" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="1000" y="92" fill="#94a3b8" font-size="10">RAG retrieval</text>
+      <line x1="965" y1="106" x2="995" y2="106" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="1000" y="109" fill="#94a3b8" font-size="10">Evaluation</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ AGENTS ══ -->
+<div id="view-agents" class="view">
+  <p class="section-title">Agent Catalog</p>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">🧠</div>
+      <div class="card-title">Planner Agent</div>
+      <div class="card-desc">Decomposes user requests into structured JSON execution plans. Assigns agents, determines step order, identifies dependencies, and flags human approval requirements.</div>
+      <span class="badge badge-blue">Task Decomposition</span>
+      <span class="badge badge-purple">JSON Plan Output</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">Research Agent</div>
+      <div class="card-desc">Retrieves and synthesises knowledge via KnowledgeOps hybrid RAG. Produces structured summaries with citations, knowledge gaps, and recommendations for downstream agents.</div>
+      <span class="badge badge-green">KnowledgeOps</span>
+      <span class="badge badge-blue">Hybrid Retrieval</span>
+      <span class="badge badge-blue">Citations</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">💻</div>
+      <div class="card-title">Coding Agent</div>
+      <div class="card-desc">Generates production-quality code in Python, TypeScript, Java, and Go. Handles architecture scaffolding, refactoring, and bug fixing with full type hints and error handling.</div>
+      <span class="badge badge-blue">Python</span>
+      <span class="badge badge-blue">TypeScript</span>
+      <span class="badge badge-blue">Java</span>
+      <span class="badge badge-blue">Go</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">✅</div>
+      <div class="card-title">QA Agent</div>
+      <div class="card-desc">Generates exhaustive test suites: pytest unit tests, Playwright E2E, Selenium, API tests (httpx), and performance tests. Covers happy path, edge cases, and error scenarios.</div>
+      <span class="badge badge-green">pytest</span>
+      <span class="badge badge-yellow">Playwright</span>
+      <span class="badge badge-blue">API Testing</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <div class="card-title">Security Agent</div>
+      <div class="card-desc">Deep security review powered by SentinelAI. Checks OWASP Top 10, CWE, NIST guidelines. Produces structured risk reports with severity-ranked findings and concrete remediations.</div>
+      <span class="badge badge-red">SentinelAI</span>
+      <span class="badge badge-red">OWASP</span>
+      <span class="badge badge-red">Risk Score</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">📝</div>
+      <div class="card-title">Documentation Agent</div>
+      <div class="card-desc">Produces READMEs, architecture documents, API documentation, and release notes. Includes Mermaid diagrams for architecture flows, sequence diagrams, and ER diagrams.</div>
+      <span class="badge badge-purple">Mermaid</span>
+      <span class="badge badge-blue">OpenAPI</span>
+      <span class="badge badge-blue">Architecture</span>
+    </div>
+    <div class="card" style="border-color:#10b981">
+      <div class="card-icon">⚖️</div>
+      <div class="card-title">Contract Analysis Agent</div>
+      <div class="card-desc">Contract Review workflow specialist. Extracts parties, obligations, critical clauses, non-standard terms, timelines, and financial terms from legal contracts.</div>
+      <span class="badge badge-green">Contract Review</span>
+      <span class="badge badge-yellow">Legal Analysis</span>
+    </div>
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">🎭</div>
+      <div class="card-title">Playwright E2E Agent</div>
+      <div class="card-desc">AI SDET workflow specialist. Generates Playwright tests with Page Object Model, desktop and mobile viewports, screenshot on failure, and expect() assertions.</div>
+      <span class="badge badge-yellow">AI SDET</span>
+      <span class="badge badge-yellow">E2E</span>
+      <span class="badge badge-yellow">POM Pattern</span>
+    </div>
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">🐛</div>
+      <div class="card-title">Defect Analyzer Agent</div>
+      <div class="card-desc">AI SDET workflow specialist. Analyses test results and failure logs to produce root cause analysis, defect severity rankings, regression risk assessment, and fix priority queue.</div>
+      <span class="badge badge-yellow">AI SDET</span>
+      <span class="badge badge-red">Root Cause</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ FLOW ══ -->
+<div id="view-flow" class="view">
+  <p class="section-title">General Workflow Execution</p>
+  <p style="font-size:13px;color:#64748b;margin-bottom:20px;">FAA-Compliant Flight Planning API example from the overview doc</p>
+  <div class="flow-step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <h4>🛡 SentinelAI — Input Validation</h4>
+      <p>Every agent's BaseAgent.run() validates input before execution</p>
+      <span class="step-api">POST /validate-input</span>
+      <span class="step-api" style="color:#f87171">blocks on injection/PII/policy</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <h4>🧠 Planner Agent</h4>
+      <p>Decomposes request → JSON plan with 5 steps: research, architecture, security, QA, documentation</p>
+      <span class="step-api">LangGraph node: plan</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <h4>🔍 Research Agent + KnowledgeOps</h4>
+      <p>Retrieves FAA Documents, DO-178C references, previous designs, internal standards</p>
+      <span class="step-api">POST /knowledgeops/retrieve</span>
+      <span class="step-api">hybrid BM25 + vector + reranking</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <h4>💻 Coding Agent → Architecture</h4>
+      <p>Generates FAA-compliant API architecture document based on research findings</p>
+      <span class="step-api">LangGraph node: coding</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <h4>🔒 Security Agent + SentinelAI</h4>
+      <p>Reviews architecture for security vulnerabilities; gets risk score from SentinelAI</p>
+      <span class="step-api">POST /sentinelai/risk-score</span>
+      <span class="step-api" style="color:#34d399">{"risk_score": 18}</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <h4>✅ QA Agent</h4>
+      <p>Generates test cases for the API: unit tests, integration tests, compliance tests</p>
+      <span class="step-api">LangGraph node: qa</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">7</div>
+    <div class="step-content">
+      <h4>📊 EvalOps — Quality Evaluation</h4>
+      <p>Scores the final output for quality, completeness, and groundedness</p>
+      <span class="step-api">POST /evalops/evaluate</span>
+      <span class="step-api" style="color:#a78bfa">{"quality":0.94,"completeness":0.91,"groundedness":0.96}</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">8</div>
+    <div class="step-content">
+      <h4>📝 Documentation Agent</h4>
+      <p>Generates final architecture document with Mermaid diagrams, API spec, and compliance notes</p>
+      <span class="step-api">LangGraph node: documentation</span>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">9</div>
+    <div class="step-content">
+      <h4>🏁 Response Returned + Metrics Stored</h4>
+      <p>Final output returned; all metrics stored in PostgreSQL and ClickHouse via EvalOps</p>
+      <span class="step-api" style="color:#34d399">status: completed</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ CONTRACT ══ -->
+<div id="view-contract" class="view">
+  <p class="section-title">Contract Review Workflow</p>
+  <p style="font-size:13px;color:#64748b;margin-bottom:20px;">Reuses KnowledgeOps + SentinelAI + EvalOps — zero duplicate code</p>
+  <div class="cards" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))">
+    <div class="card" style="border-color:#10b981">
+      <div class="card-icon">📚</div>
+      <div class="card-title" style="color:#34d399">Retrieve Precedents</div>
+      <div class="card-desc">KnowledgeOps pulls relevant contracts, legal standards, and precedents from the contracts collection</div>
+    </div>
+    <div class="card" style="border-color:#10b981">
+      <div class="card-icon">⚖️</div>
+      <div class="card-title" style="color:#34d399">Contract Analysis</div>
+      <div class="card-desc">Extracts parties, obligations, critical clauses, non-standard terms, timelines, and financial terms</div>
+    </div>
+    <div class="card" style="border-color:#10b981">
+      <div class="card-icon">🔬</div>
+      <div class="card-title" style="color:#34d399">Legal Research</div>
+      <div class="card-desc">Compares clauses against retrieved standards. Identifies regulatory red flags and compliance deviations</div>
+    </div>
+    <div class="card" style="border-color:#ef4444">
+      <div class="card-icon">🎯</div>
+      <div class="card-title" style="color:#f87171">Risk Scoring</div>
+      <div class="card-desc">SentinelAI + ContractRiskAgent produce 0–100 risk score. Score > 40 triggers human approval gate</div>
+    </div>
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">👤</div>
+      <div class="card-title" style="color:#fbbf24">Human Approval</div>
+      <div class="card-desc">LangGraph interrupt_before pauses workflow. POST /approvals/{id}/decide to approve or reject</div>
+    </div>
+    <div class="card" style="border-color:#10b981">
+      <div class="card-icon">📋</div>
+      <div class="card-title" style="color:#34d399">Executive Summary</div>
+      <div class="card-desc">ContractSummaryAgent produces polished report: risk level, negotiation points, approval recommendation</div>
+    </div>
+  </div>
+  <div style="margin-top:24px;padding:16px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;">
+    <p style="font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:8px;">Usage</p>
+    <pre style="font-family:monospace;font-size:12px;color:#34d399;background:#0a0e1a;padding:12px;border-radius:6px;overflow:auto">POST /workflows/run
+{
+  "request": "Review this SaaS agreement for IP ownership and limitation of liability clauses...",
+  "workflow_type": "contract_review",
+  "knowledge_collection": "contracts"
+}</pre>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ SDET ══ -->
+<div id="view-sdet" class="view">
+  <p class="section-title">AI SDET Workflow</p>
+  <p style="font-size:13px;color:#64748b;margin-bottom:20px;">Perfect for your background — generate tests, Playwright, API tests, and defect analysis from a feature description</p>
+  <div class="cards" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))">
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">📖</div>
+      <div class="card-title" style="color:#fbbf24">Retrieve Specs</div>
+      <div class="card-desc">KnowledgeOps retrieves existing tests, specs, and documentation relevant to the feature</div>
+    </div>
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">📋</div>
+      <div class="card-title" style="color:#fbbf24">Requirements Analysis</div>
+      <div class="card-desc">Extracts functional/non-functional requirements, acceptance criteria, edge cases, and test strategy</div>
+    </div>
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">🧪</div>
+      <div class="card-title" style="color:#fbbf24">pytest Unit Tests</div>
+      <div class="card-desc">Full pytest suite with fixtures, parametrize, async support, AAA pattern, coverage for all paths</div>
+    </div>
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">🎭</div>
+      <div class="card-title" style="color:#fbbf24">Playwright E2E</div>
+      <div class="card-desc">Page Object Model, desktop + mobile viewports, screenshot on failure, expect() assertions</div>
+    </div>
+    <div class="card" style="border-color:#fbbf24">
+      <div class="card-icon">🌐</div>
+      <div class="card-title" style="color:#fbbf24">API Tests</div>
+      <div class="card-desc">httpx + pytest async API tests covering all HTTP methods, status codes, schema validation, auth</div>
+    </div>
+    <div class="card" style="border-color:#ef4444">
+      <div class="card-icon">🐛</div>
+      <div class="card-title" style="color:#f87171">Defect Analysis</div>
+      <div class="card-desc">If test results provided: root cause analysis, severity ranking, regression risk, fix priority queue</div>
+    </div>
+  </div>
+  <div style="margin-top:24px;padding:16px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;">
+    <p style="font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:8px;">Usage</p>
+    <pre style="font-family:monospace;font-size:12px;color:#fbbf24;background:#0a0e1a;padding:12px;border-radius:6px;overflow:auto">POST /workflows/run
+{
+  "request": "Generate comprehensive tests for our user authentication API including JWT refresh, 2FA, and rate limiting",
+  "workflow_type": "sdet",
+  "knowledge_collection": "default"
+}</pre>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ API ══ -->
+<div id="view-api" class="view">
+  <p class="section-title">API Reference</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+        <th>Body / Params</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td class="endpoint">/health</td>
+        <td>Liveness probe</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td class="endpoint">/ready</td>
+        <td>Readiness — checks all integrations</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td class="endpoint">/metrics</td>
+        <td>Workflow metrics summary</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/workflows/run</td>
+        <td>Start a new workflow</td>
+        <td>request, workflow_type, knowledge_collection</td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td class="endpoint">/workflows/{id}</td>
+        <td>Get workflow status + result</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td class="endpoint">/workflows</td>
+        <td>List recent workflows</td>
+        <td>?limit=20</td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td class="endpoint">/approvals/pending</td>
+        <td>List workflows awaiting human approval</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/approvals/{id}/decide</td>
+        <td>Approve or reject a paused workflow</td>
+        <td>status, notes, reviewed_by</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="section-title" style="margin-top:32px;">Integration Endpoints</p>
+  <table>
+    <thead>
+      <tr><th>Service</th><th>Method</th><th>Endpoint</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SentinelAI</td>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/validate-input</td>
+        <td>Injection/PII/policy check on prompts</td>
+      </tr>
+      <tr>
+        <td>SentinelAI</td>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/validate-output</td>
+        <td>Data leakage / policy check on outputs</td>
+      </tr>
+      <tr>
+        <td>SentinelAI</td>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/risk-score</td>
+        <td>Numeric risk score 0–100 for content</td>
+      </tr>
+      <tr>
+        <td>EvalOps</td>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/evaluate</td>
+        <td>Quality, completeness, groundedness scores</td>
+      </tr>
+      <tr>
+        <td>EvalOps</td>
+        <td><span class="method method-get">GET</span></td>
+        <td class="endpoint">/metrics/{id}</td>
+        <td>Fetch stored evaluation metrics</td>
+      </tr>
+      <tr>
+        <td>KnowledgeOps</td>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/retrieve</td>
+        <td>Hybrid RAG retrieval with reranking</td>
+      </tr>
+      <tr>
+        <td>KnowledgeOps</td>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/retrieve/stream</td>
+        <td>Streaming retrieval (SSE)</td>
+      </tr>
+      <tr>
+        <td>KnowledgeOps</td>
+        <td><span class="method method-post">POST</span></td>
+        <td class="endpoint">/ingest</td>
+        <td>Add documents to knowledge base</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>

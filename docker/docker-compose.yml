@@ -1,0 +1,159 @@
+version: "3.9"
+
+# NexusAI Full Stack
+# Includes: NexusAI + PostgreSQL + Redis + Grafana + Prometheus + OTEL Collector
+# Platform stubs for SentinelAI, EvalOps, KnowledgeOps (replace with real services)
+
+services:
+
+  # ── NexusAI Application ──────────────────────────────────────────────────
+  nexusai:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DATABASE_URL=postgresql+asyncpg://nexusai:nexusai@postgres:5432/nexusai
+      - REDIS_URL=redis://redis:6379/0
+      - SENTINELAI_URL=http://sentinelai-stub:8001
+      - EVALOPS_URL=http://evalops-stub:8002
+      - KNOWLEDGEOPS_URL=http://knowledgeops-stub:8003
+      - OTEL_ENDPOINT=http://otel-collector:4317
+      - OTEL_ENABLED=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../app:/app/app  # hot-reload in dev
+    restart: unless-stopped
+    networks:
+      - nexusai-net
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nexusai
+      POSTGRES_PASSWORD: nexusai
+      POSTGRES_DB: nexusai
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../app/db/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexusai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexusai-net
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexusai-net
+
+  # ── Ollama (local LLM) ────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - nexusai-net
+    profiles:
+      - ollama  # only start with: docker compose --profile ollama up
+
+  # ── OpenTelemetry Collector ───────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    command: ["--config=/etc/otel-config.yaml"]
+    volumes:
+      - ./otel-config.yaml:/etc/otel-config.yaml
+    ports:
+      - "4317:4317"   # gRPC
+      - "4318:4318"   # HTTP
+    networks:
+      - nexusai-net
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - nexusai-net
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=nexusai
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - nexusai-net
+
+  # ── Platform Stubs (dev only — replace with real services) ────────────────
+  sentinelai-stub:
+    image: kennethreitz/httpbin
+    ports:
+      - "8001:80"
+    networks:
+      - nexusai-net
+
+  evalops-stub:
+    image: kennethreitz/httpbin
+    ports:
+      - "8002:80"
+    networks:
+      - nexusai-net
+
+  knowledgeops-stub:
+    image: kennethreitz/httpbin
+    ports:
+      - "8003:80"
+    networks:
+      - nexusai-net
+
+
+volumes:
+  postgres-data:
+  redis-data:
+  ollama-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  nexusai-net:
+    driver: bridge
