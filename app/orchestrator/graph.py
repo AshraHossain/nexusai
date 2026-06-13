@@ -251,7 +251,7 @@ def build_graph() -> StateGraph:
     builder = StateGraph(WorkflowState)
 
     # Register nodes
-    builder.add_node("plan", node_plan)
+    builder.add_node("planner", node_plan)
     builder.add_node("research", node_research)
     builder.add_node("coding", node_coding)
     builder.add_node("qa", node_qa)
@@ -266,11 +266,11 @@ def build_graph() -> StateGraph:
     builder.add_node("end_quality_fail", node_end_quality_fail)
 
     # Entry point
-    builder.add_edge(START, "plan")
+    builder.add_edge(START, "planner")
 
     # Conditional routing
     builder.add_conditional_edges(
-        "plan",
+        "planner",
         route_after_plan,
         {"research": "research", "coding": "coding", "end_error": "end_error"},
     )
